@@ -1,9 +1,9 @@
-<library path="custom_robot_controller">
-  <class name="gazebo_practise/CustomRobotController" 
-         type="gazebo_practise::CustomRobotController" 
+<library path="HybridFTController">
+  <class name="Custom_Franka_Controller/HybridFTController" 
+         type="Custom_Franka_Controller::HybridFTController" 
          base_class_type="controller_interface::ControllerInterface">
     <description>
-      Custom Robot Controller
+      Hybrid Force/Torque Controller
     </description>
   </class>
 </library>

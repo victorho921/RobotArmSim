@@ -40,7 +40,7 @@ install(
   DIRECTORY urdf worlds config controller_config
   DESTINATION share/${PROJECT_NAME})
 
-add_library(custom_robot_controller SHARED controller/robot_controller.cpp)
+add_library(HybridFTController SHARED controller/robot_controller.cpp)
 
 add_executable(reference_generator src/reference_generator.cpp)
 
@@ -53,8 +53,8 @@ ament_target_dependencies(reference_generator
   kdl_parser
 )
 
-# Link the library custom_robot_controller with required libraries
-ament_target_dependencies(custom_robot_controller
+# Link the library HybridFTController with required libraries
+ament_target_dependencies(HybridFTController
   rclcpp
   controller_interface
   hardware_interface
@@ -65,7 +65,7 @@ ament_target_dependencies(custom_robot_controller
 
 pluginlib_export_plugin_description_file(controller_interface plugins.xml)
 
-install(TARGETS custom_robot_controller
+install(TARGETS HybridFTController
   DESTINATION lib)
 
 ament_package()
