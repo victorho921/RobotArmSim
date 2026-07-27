@@ -9,12 +9,13 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>
-  <depend>ros_gz_sim</depend>  <!-- For Gazebo -->
-  <depend>robot_state_publisher</depend>  <!-- For publishing robot state -->
-  <depend>rviz2</depend>  <!-- For RViz visualization -->
+  <depend>ros_gz_sim</depend>  
+  <depend>robot_state_publisher</depend>  
+  <depend>rviz2</depend>  
   <depend>franka_description</depend>
   <depend>trajectory_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>pinocchio</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

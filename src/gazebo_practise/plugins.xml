@@ -3,7 +3,16 @@
          type="Custom_Franka_Controller::HybridFTController" 
          base_class_type="controller_interface::ControllerInterface">
     <description>
-      Hybrid Force/Torque Controller
+      HybridFTController
     </description>
+  </class>
+</library>
+
+
+<library path="TaskSpaceController">
+  <class name="Task_Space_Controller/TaskSpaceController" 
+         type="Task_Space_Controller::TaskSpaceController" 
+         base_class_type="controller_interface::ControllerInterface">
+    <description>TaskSpaceController</description>
   </class>
 </library>

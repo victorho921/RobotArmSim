@@ -3,3 +3,9 @@
   ros_type_name: "geometry_msgs/msg/WrenchStamped"
   gz_type_name: "ignition.msgs.Wrench"
   direction: GZ_TO_ROS
+
+- ros_topic_name: "force_torque_joint6"
+  gz_topic_name: "/world/empty/model/fr3/joint/fr3_joint6/sensor/force_torque_sensor/forcetorque"
+  ros_type_name: "geometry_msgs/msg/WrenchStamped"
+  gz_type_name: "ignition.msgs.Wrench"
+  direction: GZ_TO_ROS
