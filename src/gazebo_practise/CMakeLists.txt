@@ -21,6 +21,7 @@ find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(realtime_tools REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(pinocchio REQUIRED)
 
 
 if(BUILD_TESTING)
@@ -41,6 +42,11 @@ install(
   DESTINATION share/${PROJECT_NAME})
 
 add_library(HybridFTController SHARED controller/robot_controller.cpp)
+add_library(TaskSpaceController SHARED controller/task_space_controller.cpp)
+target_include_directories(TaskSpaceController PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+  )
 
 add_executable(reference_generator src/reference_generator.cpp)
 
@@ -61,11 +67,25 @@ ament_target_dependencies(HybridFTController
   pluginlib
   realtime_tools
   Eigen3
+  pinocchio
 )
+
+# Link the library TaskSpaceController with required libraries
+ament_target_dependencies(TaskSpaceController
+  rclcpp
+  controller_interface
+  hardware_interface
+  pluginlib
+  realtime_tools
+  Eigen3
+  pinocchio
+)
+
+target_link_libraries(TaskSpaceController pinocchio::pinocchio)
 
 pluginlib_export_plugin_description_file(controller_interface plugins.xml)
 
-install(TARGETS HybridFTController
+install(TARGETS HybridFTController TaskSpaceController
   DESTINATION lib)
 
 ament_package()

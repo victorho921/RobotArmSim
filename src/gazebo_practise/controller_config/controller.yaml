@@ -11,6 +11,9 @@ controller_manager:
 
     robot_controller:
       type: Custom_Franka_Controller/HybridFTController
+
+    # task_space_controller:
+    #   type: Task_Space_Controller/TaskSpaceController
       
       # gazebo_practise - package name where the plugin is defined
       # CustomRobotController - self defined C++ class name inside the controller program
@@ -41,7 +44,7 @@ robot_controller:
       - fr3_joint7
 
     command_interfaces:
-      - position 
+      # - position 
       - velocity
 
     state_interfaces:

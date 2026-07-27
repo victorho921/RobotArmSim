@@ -160,7 +160,7 @@ def generate_launch_description():
     ])
 
 # Single Command to move the robot in gazebo
-# ros2 topic pub /robot_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory "{
+# ros2 topic pub --once /robot_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory "{
 #   joint_names: ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7'],
 #   points: [
 #     {
@@ -176,6 +176,20 @@ def generate_launch_description():
 
 # If cannot not find visual
 # export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:~/RobotArmSim/src
+
+
+# positions: [0.0, -0.785, 1.0, -2.35, 1.0, 0.0, 0.0]
+
+# ros2 topic pub --once /robot_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory "{
+#   joint_names: ['fr3_joint6'],
+#   points: [
+#     {
+#       positions: [0.0],
+#       velocities: [0.5],
+#       time_from_start: {sec: 5, nanosec: 0}
+#     }
+#   ]
+# }"
 
 
 
