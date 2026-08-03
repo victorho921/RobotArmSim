@@ -26,6 +26,8 @@ def generate_launch_description():
     pkg_robot = get_package_share_directory('gazebo_practise')
     pkg_franka_robot = get_package_share_directory('franka_description')
 
+    # Get controller yaml file
+    controller_yaml_file = os.path.join(pkg_robot, 'controller_config', 'controller.yaml')
 
     # Get the urdf.xacro file
     xacro_file = os.path.join(pkg_franka_robot, 'robots', 'fr3', 'fr3.urdf.xacro')
@@ -122,17 +124,26 @@ def generate_launch_description():
         output='screen'
     )
 
-    load_joint_trajectory_controler = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['joint_trajectory_controller','--inactive'],
-        output='screen'
-    )
+    # load_joint_trajectory_controller = Node(
+    #     package='controller_manager',
+    #     executable='spawner',
+    #     arguments=['joint_trajectory_controller','--inactive'],
+    #     output='screen'
+    # )
 
     load_HybridFT_controller = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['robot_controller','active'],
+        # arguments=['robot_controller','--inactive'],
+        arguments=['robot_controller'],
+        output='screen'
+    )
+
+    load_TaskSpace_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        # arguments=['task_space_controller', '--param-file', controller_yaml_file],
+        arguments=['task_space_controller'],
         output='screen'
     )
 
@@ -154,9 +165,10 @@ def generate_launch_description():
         # launch_rviz,
         ft_bridge,
 
-        load_HybridFT_controller,
-        load_joint_trajectory_controler,
+        # load_HybridFT_controller,
+        # load_joint_trajectory_controller,
         load_joint_state_broadcaster,
+        load_TaskSpace_controller
     ])
 
 # Single Command to move the robot in gazebo

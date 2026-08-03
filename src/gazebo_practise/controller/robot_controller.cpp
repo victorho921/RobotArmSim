@@ -312,7 +312,6 @@ void HybridFTController::PDControl()
     double vel_err = dq_des - dq_curr;
 
     vel_cmd[i] = kp_[i] * pos_err + kd_[i] * vel_err;
-    // vel_cmd[i] = std::clamp(vel_cmd[i], -1.0, 1.0);
   }
 }
 

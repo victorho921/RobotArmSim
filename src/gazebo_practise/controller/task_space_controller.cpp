@@ -14,12 +14,53 @@
 
 #include "include/task_space_controller.hpp"
 
+using config_type = controller_interface::interface_configuration_type;
+
 namespace Task_Space_Controller
 {
 TaskSpaceController::TaskSpaceController() : controller_interface::ControllerInterface() {}
 
+controller_interface::InterfaceConfiguration TaskSpaceController::command_interface_configuration()
+  const
+{
+  controller_interface::InterfaceConfiguration conf = {config_type::INDIVIDUAL, {}};
+
+  conf.names.reserve(joint_names_.size() * command_interface_types_.size());
+  for (const auto & joint_name : joint_names_)
+  {
+    for (const auto & interface_type : command_interface_types_)
+    {
+      conf.names.push_back(joint_name + "/" + interface_type);
+    }
+  }
+
+  return conf;
+}
+
+controller_interface::InterfaceConfiguration TaskSpaceController::state_interface_configuration() const
+{
+  controller_interface::InterfaceConfiguration conf = {config_type::INDIVIDUAL, {}};
+
+  conf.names.reserve(joint_names_.size() * state_interface_types_.size());
+  for (const auto & joint_name : joint_names_)
+  {
+    for (const auto & interface_type : state_interface_types_)
+    {
+      conf.names.push_back(joint_name + "/" + interface_type);
+    }
+  }
+
+  return conf;
+}
+
 controller_interface::CallbackReturn TaskSpaceController::on_init()
 {
+    joint_names_ = auto_declare<std::vector<std::string>>("joints", joint_names_);
+    command_interface_types_ =
+        auto_declare<std::vector<std::string>>("command_interfaces", command_interface_types_);
+    state_interface_types_ =
+        auto_declare<std::vector<std::string>>("state_interfaces", state_interface_types_);
+
     if (!get_node()->has_parameter("robot_description"))
     {
         RCLCPP_ERROR(get_node()->get_logger(), "Parameter 'robot_description' not found.");
@@ -107,33 +148,37 @@ controller_interface::CallbackReturn TaskSpaceController::on_activate(
     joint_velocity_state_interface_.clear();
     joint_velocity_command_interface_.clear();
 
-    //  // Assign command interfaces
-    // for (auto & interface : command_interfaces_)
-    // {
-    //     const std::string interface_type = interface.get_interface_name();  // "position", "velocity", etc.
-    //     auto it = std::find_if(command_interfaces_.begin(), command_interfaces_.end(),
-    //         [&](const hardware_interface::LoanedCommandInterface & interface) 
-    //         { return interface.get_interface_name() == interface_type; });
-    //     if (it != command_interfaces_.end())
-    //     {
-    //         it->second->push_back(interface);   // push into the correct vector
-    //     }
-    //     else
-    //     {
-    //         RCLCPP_ERROR(logger, "Command interface type '%s' not found in command_interfaces_ map.", interface_type.c_str());
-    //     }
-    // }
-    // // Assign state interfaces
-    // for (auto & interface : state_interfaces_)
-    // {
-    //     const std::string interface_name = interface.get_name();
-    //     const std::string interface_type = interface.get_interface_name();  // position/velocity/effort
-    //     auto it = state_interfaces_.find(interface_type);
-    //     if (it != state_interfaces_.end())
-    //     {
-    //         it->second->push_back(interface);   // push into the correct vector
-    //     }
-    // }
+    // Assign Command Interfaces
+    for (auto & interface : command_interfaces_)
+    {
+        if (interface.get_interface_name() == hardware_interface::HW_IF_VELOCITY)
+        {
+            joint_velocity_command_interface_.emplace_back(std::ref(interface));
+        }
+    }
+
+    // Assign State Interfaces
+    for (auto & interface : state_interfaces_)
+    {
+        if (interface.get_interface_name() == hardware_interface::HW_IF_POSITION)
+        {
+            joint_position_state_interface_.emplace_back(std::ref(interface));
+        }
+        else if (interface.get_interface_name() == hardware_interface::HW_IF_VELOCITY)
+        {
+            joint_velocity_state_interface_.emplace_back(std::ref(interface));
+        }
+    }
+
+    // Verify correct number of interfaces acquired
+    if (joint_velocity_command_interface_.size() != joint_names_.size() ||
+        joint_position_state_interface_.size() != joint_names_.size())
+    {
+        RCLCPP_ERROR(get_node()->get_logger(), "Interface size mismatch!");
+        return controller_interface::CallbackReturn::ERROR;
+    }
+
+    num_joints_ = joint_names_.size();
 
 
     // 1. Clear interfaces and assign them securely
@@ -173,19 +218,23 @@ controller_interface::return_type TaskSpaceController::update(
     const rclcpp::Time & time, const rclcpp::Duration & period)
 {
     // Read latest message from the real-time buffer
-    auto latest_target_msg = *(target_pose_buffer_.readFromRT());
+    auto incoming = *target_pose_buffer_.readFromRT();
     
-    if (latest_target_msg) 
+    trajectory_msg_ = incoming;
+    if (trajectory_msg_ != nullptr) 
     {
-        target_pos_ << latest_target_msg->pose.position.x,
-                    latest_target_msg->pose.position.y,
-                    latest_target_msg->pose.position.z;
+        target_pos_ << trajectory_msg_->pose.position.x,
+                    trajectory_msg_->pose.position.y,
+                    trajectory_msg_->pose.position.z;
                     
         target_quat_ = Eigen::Quaterniond(
-                    latest_target_msg->pose.orientation.w,
-                    latest_target_msg->pose.orientation.x,
-                    latest_target_msg->pose.orientation.y,
-                    latest_target_msg->pose.orientation.z);
+                    trajectory_msg_->pose.orientation.w,
+                    trajectory_msg_->pose.orientation.x,
+                    trajectory_msg_->pose.orientation.y,
+                    trajectory_msg_->pose.orientation.z);
+        // RCLCPP_INFO(get_node()->get_logger(), "New target pose received: Position [%.3f, %.3f, %.3f], Orientation [%.3f, %.3f, %.3f, %.3f]",
+        //             target_pos_.x(), target_pos_.y(), target_pos_.z(),
+        //             target_quat_.w(), target_quat_.x(), target_quat_.y(), target_quat_.z());
     } 
     else 
     {
@@ -227,6 +276,21 @@ controller_interface::return_type TaskSpaceController::update(
     return controller_interface::return_type::OK;
 }
 
+controller_interface::CallbackReturn TaskSpaceController::on_cleanup(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
+controller_interface::CallbackReturn TaskSpaceController::on_error(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
+controller_interface::CallbackReturn TaskSpaceController::on_shutdown(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
 /*Helper Functions*/
 // Update the current joint positions and velocities 
 void TaskSpaceController::updateCurrentPose()
@@ -245,6 +309,36 @@ void TaskSpaceController::writeVelocityCommands(const Eigen::VectorXd & dq_cmd)
     {
         joint_velocity_command_interface_[i].get().set_value(dq_cmd[i]);
     }
+}
+
+void TaskSpaceController::computeJacobian()
+{
+    // Update joint Jacobians and frame placements before computing the Jacobian
+    pinocchio::computeJointJacobians(model_, data_, q_pin_);
+    pinocchio::updateFramePlacements(model_, data_);
+
+    J_.setZero(6, model_.nv);
+    pinocchio::getFrameJacobian(model_, data_, ee_frame_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J_);
+}
+
+void TaskSpaceController::computeTaskSpaceError(
+    const Eigen::Vector3d & current_pos,
+    const Eigen::Quaterniond & current_quat,
+    Eigen::VectorXd & error)
+{
+    Eigen::Vector3d pos_error = target_pos_ - current_pos;
+
+    Eigen::Quaterniond quat_error = target_quat_ * current_quat.conjugate();
+    quat_error.normalize();
+    if (quat_error.w() < 0.0)
+    {
+        quat_error.coeffs() *= -1.0;
+    }
+    Eigen::Vector3d rot_error = quat_error.vec();
+
+    error.resize(6);
+    error.head<3>() = pos_error;
+    error.tail<3>() = rot_error;
 }
 }
 

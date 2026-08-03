@@ -22,6 +22,7 @@
 #include "rclcpp/time.hpp"
 #include "rclcpp/timer.hpp"
 #include "rclcpp/logging.hpp"
+#include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "controller_interface/controller_interface.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
@@ -32,6 +33,7 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
+
 namespace Task_Space_Controller
 {
 class TaskSpaceController : public controller_interface::ControllerInterface
@@ -41,7 +43,7 @@ public:
     TaskSpaceController();
 
     // Destructor;;
-    ~TaskSpaceController() = default;
+    // ~TaskSpaceController() = default;
 
     // Mandatory for Controller Interface
     controller_interface::InterfaceConfiguration command_interface_configuration() const override;
@@ -74,6 +76,11 @@ public:
 
 protected:
     // Members
+
+    std::vector<std::string> joint_names_;
+    std::vector<std::string> command_interface_types_;
+    std::vector<std::string> state_interface_types_;
+    
     pinocchio::Model model_;
     pinocchio::Data data_;
     pinocchio::FrameIndex ee_frame_id_;
@@ -85,6 +92,8 @@ protected:
     // Task space target
     Eigen::Vector3d target_pos_;
     Eigen::Quaterniond target_quat_;
+    
+    std::shared_ptr<geometry_msgs::msg::PoseStamped> trajectory_msg_;
 
     size_t num_joints_ = 0;
 
