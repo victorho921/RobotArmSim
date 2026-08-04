@@ -203,5 +203,8 @@ def generate_launch_description():
 #   ]
 # }"
 
+# ros2 topic pub /task_space_controller/target_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: 'base_link'}, pose: {position: {x: -00.0, y: 0.217, z: 0.697}, orientation: {x: 0.924, y: -0.383, z: 0.0, w: 0.0}}}"
+# Task Space controller use world as base frame
+
 
 

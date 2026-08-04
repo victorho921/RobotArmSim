@@ -180,16 +180,14 @@ controller_interface::CallbackReturn TaskSpaceController::on_activate(
 
     num_joints_ = joint_names_.size();
 
-
-    // 1. Clear interfaces and assign them securely
-    // 2. Read current joint states immediately
+    // Read current joint states 
     updateCurrentPose();
 
-    // 3. Run forward kinematics to find out where the hand actually is right now
+    // forward kinematics
     pinocchio::forwardKinematics(model_, data_, q_pin_);
     pinocchio::updateFramePlacements(model_, data_);
     
-    // 4. Set your initial target to the CURRENT position so it holds steady
+    // Set your initial target to the CURRENT position so it holds steady
     const pinocchio::SE3 & ee_pose = data_.oMf[ee_frame_id_];
     target_pos_ = ee_pose.translation();
     target_quat_ = Eigen::Quaterniond(ee_pose.rotation());
@@ -217,6 +215,10 @@ controller_interface::CallbackReturn TaskSpaceController::on_deactivate(
 controller_interface::return_type TaskSpaceController::update(
     const rclcpp::Time & time, const rclcpp::Duration & period)
 {
+
+    // Update current joint positions & velocities
+    updateCurrentPose();
+
     // Read latest message from the real-time buffer
     auto incoming = *target_pose_buffer_.readFromRT();
     
@@ -334,7 +336,8 @@ void TaskSpaceController::computeTaskSpaceError(
     {
         quat_error.coeffs() *= -1.0;
     }
-    Eigen::Vector3d rot_error = quat_error.vec();
+    // Eigen::Vector3d rot_error = quat_error.vec();
+    Eigen::Vector3d rot_error = 2.0 * quat_error.vec();
 
     error.resize(6);
     error.head<3>() = pos_error;
