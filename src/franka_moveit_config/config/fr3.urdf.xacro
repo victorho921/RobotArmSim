@@ -3,7 +3,7 @@
     <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
 
     <!-- Import fr3 urdf file -->
-    <xacro:include filename="$(find franka_description)/urdfs/fr3_franka_hand.urdf" />
+    <xacro:include filename="$(find franka_description)/robots/fr3/fr3.urdf.xacro" />
 
     <!-- Import control_xacro -->
     <xacro:include filename="fr3.ros2_control.xacro" />

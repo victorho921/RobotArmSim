@@ -11,16 +11,18 @@ controller_manager:
 
     robot_controller:
       type: Custom_Franka_Controller/HybridFTController
+
+    task_space_controller:
+      type: Task_Space_Controller/TaskSpaceController
       
       # gazebo_practise - package name where the plugin is defined
       # CustomRobotController - self defined C++ class name inside the controller program
 
-    # franka_arm_controller:
-    #   type: joint_trajectory_controller/JointTrajectoryController
+    arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
 
-
-    # franka_hand_controller:
-    #   type: joint_trajectory_controller/JointTrajectoryController
+    gripper_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
     
     force_torque_sensor_broadcaster:
       type: force_torque_sensor_broadcaster/ForceTorqueSensorBroadcaster
@@ -41,7 +43,26 @@ robot_controller:
       - fr3_joint7
 
     command_interfaces:
-      - position 
+      # - position 
+      - velocity
+
+    state_interfaces:
+      - position
+      - velocity
+
+task_space_controller:
+  ros__parameters:
+    end_effector_frame: fr3_link7
+    joints:
+      - fr3_joint1
+      - fr3_joint2
+      - fr3_joint3
+      - fr3_joint4
+      - fr3_joint5
+      - fr3_joint6
+      - fr3_joint7
+
+    command_interfaces:
       - velocity
 
     state_interfaces:
@@ -68,30 +89,30 @@ joint_trajectory_controller:
       - velocity
 
 # Controller from Moveit setup assistant
-# franka_arm_controller:
-#   ros__parameters:
-#     joints:
-#       - fr3_joint1
-#       - fr3_joint2
-#       - fr3_joint3
-#       - fr3_joint4
-#       - fr3_joint5
-#       - fr3_joint6
-#       - fr3_joint7
-#     command_interfaces:
-#       - position
-#     state_interfaces:
-#       - position
-#       - velocity
-# franka_hand_controller:
-#   ros__parameters:
-#     joints:
-#       - fr3_finger_joint1
-#     command_interfaces:
-#       - position
-#     state_interfaces:
-#       - position
-#       - velocity
+arm_controller:
+  ros__parameters:
+    joints:
+      - fr3_joint1
+      - fr3_joint2
+      - fr3_joint3
+      - fr3_joint4
+      - fr3_joint5
+      - fr3_joint6
+      - fr3_joint7
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+gripper_controller:
+  ros__parameters:
+    joints:
+      - fr3_finger_joint1
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
 
 force_torque_sensor_broadcaster:
   ros__parameters:
