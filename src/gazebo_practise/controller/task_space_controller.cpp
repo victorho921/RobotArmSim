@@ -106,7 +106,7 @@ controller_interface::CallbackReturn TaskSpaceController::on_init()
 
     ee_frame_id_ = model_.getFrameId(ee_frame_name_);
 
-    // 4. Initialize Pinocchio Data structures
+    // Initialize Pinocchio Data structures
     data_ = pinocchio::Data(model_);
     
     // Resize your internal Eigen vectors
@@ -244,27 +244,42 @@ controller_interface::return_type TaskSpaceController::update(
         return controller_interface::return_type::OK;
     }
 
-    // 2. Update Pinocchio Kinematics
+    // Update Pinocchio Kinematics
     pinocchio::forwardKinematics(model_, data_, q_pin_, dq_pin_);
     pinocchio::updateFramePlacements(model_, data_);
 
-    // 3. Get Current End Effector Pose
+    // Get Current End Effector Pose
     const pinocchio::SE3 & ee_pose = data_.oMf[ee_frame_id_];
-    Eigen::Vector3d current_pos = ee_pose.translation();
+    // Get Current End Effector Velocity
+    pinocchio::Motion v_ee_spatial = pinocchio::getFrameVelocity(model_, data_, ee_frame_id_, pinocchio::LOCAL_WORLD_ALIGNED);
+
+    // Convert End Effector Pose to from lie group to position and quaternion
+    Eigen::Vector3d current_pos = ee_pose.translation(); 
     Eigen::Quaterniond current_quat(ee_pose.rotation());
 
-    // 4. Calculate error
+    Eigen::VectorXd v_curr = v_ee_spatial.toVector();
+
+    // Create 6d error vector placeholder
     Eigen::VectorXd error(6);
+    // Compute the error vector
     computeTaskSpaceError(current_pos, current_quat, error);
+    Eigen::VectorXd v_target = Eigen::VectorXd::Zero(6);
+    
+    if (trajectory_msg_ != nullptr) 
+    {
+        // If your message contains velocity inputs:
+        // v_target << trajectory_msg_->twist.linear.x, ...
+    }
+    Eigen::VectorXd de = v_target - v_curr;
 
-    // 5. Generate Desired Task Space Velocity (twist) using proportional gain
-    // x_dot_des = Kp * error
-    Eigen::VectorXd twist_des = kp_task_ * error; 
 
-    // 6. Compute Jacobian
+    // Generate Desired Task Space Velocity (twist) using proportional gain
+    Eigen::VectorXd twist_des = kp_task_ * error + kd_task_ * de; 
+
+    // Compute Jacobian
     computeJacobian();
 
-    // 7. Solve Inverse Kinematics using Pseudo-inverse (or Damped Least Squares)
+    // Solve Inverse Kinematics using Pseudo-inverse (or Damped Least Squares)
     // J * dq = twist_des  =>  dq = J^+ * twist_des
     // Using Damped Least Squares (DLS) to safely handle singularities: J^T * (J * J^T + lambda^2 * I)^-1
     double lambda = 0.01; // damping factor
@@ -323,6 +338,7 @@ void TaskSpaceController::computeJacobian()
     pinocchio::getFrameJacobian(model_, data_, ee_frame_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J_);
 }
 
+// Compute the error between current and target end effector pose
 void TaskSpaceController::computeTaskSpaceError(
     const Eigen::Vector3d & current_pos,
     const Eigen::Quaterniond & current_quat,

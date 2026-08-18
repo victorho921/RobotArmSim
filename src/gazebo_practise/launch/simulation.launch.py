@@ -11,10 +11,11 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.substitutions import LaunchConfiguration,PathJoinSubstitution
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.parameter_descriptions import ParameterValue
+from moveit_configs_utils import MoveItConfigsBuilder
 
 from xml.etree.ElementTree import fromstring, ParseError
 import sys
-# from xacro import process_file
+
 
 def remove_comments(text):
     pattern = r'<!--(.*?)-->'
@@ -31,22 +32,6 @@ def generate_launch_description():
 
     # Get the urdf.xacro file
     xacro_file = os.path.join(pkg_franka_robot, 'robots', 'fr3', 'fr3.urdf.xacro')
-
-    # Convert Xacro to URDF 
-    # robot_description_config = xacro.process_file(
-    #     xacro_file 
-    #     # mappings={
-    #     #     # 'arm_id': arm_id_str, 
-    #     #     'arm_id': 'fr3', 
-    #     #     # 'hand': load_gripper_str, 
-    #     #     'hand': 'true', 
-    #     #     'ros2_control': 'false', 
-    #     #     'gazebo': 'true', 
-    #     #     # 'ee_id': franka_hand_str
-    #     #     'ee_id': 'franka_hand'
-    #     # }
-    # )
-    # robot_description = {'robot_description': robot_description_config.toxml()}
     
     robot_description = xacro.process_file(
         xacro_file, 
@@ -97,6 +82,34 @@ def generate_launch_description():
             output='screen'
     )
 
+    moveit_config = (
+        MoveItConfigsBuilder("fr3", package_name="franka_moveit_config")
+        # .robot_description(file_path=xacro_file)
+        .trajectory_execution(file_path="config/moveit_controllers.yaml")
+        .robot_description_semantic(file_path="config/fr3.srdf")
+        .planning_scene_monitor(
+            publish_robot_description=True,
+            publish_robot_description_semantic=True
+        )
+        .to_moveit_configs()
+    ) 
+
+    move_group_node = Node(
+        package="moveit_ros_move_group",
+        executable="move_group",
+        output="screen",
+        parameters=[
+            robot_description,
+            # moveit_config.to_dict(),
+            moveit_config.robot_description_semantic,
+            moveit_config.robot_description_kinematics,
+            moveit_config.planning_pipelines,
+            moveit_config.joint_limits,
+            moveit_config.trajectory_execution,
+            {'use_sim_time': True},
+        ],
+    )
+
     # For launching Rviz
     launch_rviz = Node(
             package='rviz2',
@@ -104,6 +117,11 @@ def generate_launch_description():
             name='rviz2',
             output='screen',
             arguments=['-d', rviz_config_path],
+            parameters=[{'use_sim_time': True},
+                        moveit_config.robot_description,
+                        moveit_config.robot_description_semantic,
+                        moveit_config.robot_description_kinematics,
+                        moveit_config.planning_pipelines,],
     )
 
     # For spawning robot node in gazebo
@@ -116,6 +134,17 @@ def generate_launch_description():
         output='screen',
     )
 
+    ign_bridge_config = os.path.join(pkg_robot, 'config', 'ign_bridge.yaml')
+    ft_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='ft_sensor_bridge',
+        output='screen',
+        parameters=[{'config_file': ign_bridge_config}],
+    )
+
+
+    # ------------------------------------ Controller ------------------------------------ #
     # For launching the joint state broadcaster
     load_joint_state_broadcaster = ExecuteProcess(
         cmd=['ros2', 'control', 'load_controller',
@@ -131,6 +160,7 @@ def generate_launch_description():
     #     output='screen'
     # )
 
+    # For launching custom joint space controller
     load_HybridFT_controller = Node(
         package='controller_manager',
         executable='spawner',
@@ -139,6 +169,7 @@ def generate_launch_description():
         output='screen'
     )
 
+    # For launching custom task space controller
     load_TaskSpace_controller = Node(
         package='controller_manager',
         executable='spawner',
@@ -147,64 +178,39 @@ def generate_launch_description():
         output='screen'
     )
 
-    ign_bridge_config = os.path.join(pkg_robot, 'config', 'ign_bridge.yaml')
-    ft_bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        name='ft_sensor_bridge',
-        output='screen',
-        parameters=[{'config_file': ign_bridge_config}],
+    # For launching moveit arm controller
+    load_moveit_arm_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['arm_controller',
+                    '--controller-manager', '/controller_manager',],
+        output='screen'
+    ) 
+    # For launching moveit gripper controller 
+    load_moveit_gripper_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['gripper_controller',
+                    '--controller-manager', '/controller_manager',],
+        output='screen'
     )
 
-
+    
     return LaunchDescription([
         robot_state_publisher,
+        move_group_node,
         # joint_state_publisher,
         launch_gazebo,
         spawn_robot,
-        # launch_rviz,
+        launch_rviz,
         ft_bridge,
 
         # load_HybridFT_controller,
         # load_joint_trajectory_controller,
         load_joint_state_broadcaster,
-        load_TaskSpace_controller
+
+        load_moveit_arm_controller,
+        load_moveit_gripper_controller
     ])
-
-# Single Command to move the robot in gazebo
-# ros2 topic pub --once /robot_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory "{
-#   joint_names: ['fr3_joint1', 'fr3_joint2', 'fr3_joint3', 'fr3_joint4', 'fr3_joint5', 'fr3_joint6', 'fr3_joint7'],
-#   points: [
-#     {
-#       positions: [1.0, -0.785, 1.0, -2.35, 1.0, 1.57, 0.785],
-#       velocities: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-#       time_from_start: {sec: 5, nanosec: 0}
-#     }
-#   ]
-# }"
-
-# Initial position of the robot 
-# positions: [-1.22, 3.86, -0.785, -2.35, -3.044, 1.57, 0.785],
-
-# If cannot not find visual
-# export IGN_GAZEBO_RESOURCE_PATH=$IGN_GAZEBO_RESOURCE_PATH:~/RobotArmSim/src
-
-
-# positions: [0.0, -0.785, 1.0, -2.35, 1.0, 0.0, 0.0]
-
-# ros2 topic pub --once /robot_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory "{
-#   joint_names: ['fr3_joint6'],
-#   points: [
-#     {
-#       positions: [0.0],
-#       velocities: [0.5],
-#       time_from_start: {sec: 5, nanosec: 0}
-#     }
-#   ]
-# }"
-
-# ros2 topic pub /task_space_controller/target_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: 'base_link'}, pose: {position: {x: -00.0, y: 0.217, z: 0.697}, orientation: {x: 0.924, y: -0.383, z: 0.0, w: 0.0}}}"
-# Task Space controller use world as base frame
-
 
 

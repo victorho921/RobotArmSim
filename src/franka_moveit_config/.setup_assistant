@@ -1,13 +1,14 @@
 moveit_setup_assistant_config:
   urdf:
     package: franka_description
-    relative_path: urdfs/fr3_franka_hand.urdf
+    relative_path: robots/fr3/fr3.urdf.xacro
+    xacro_args: ros2_control:=true gazebo:=true hand:=true
   srdf:
     relative_path: config/fr3.srdf
   package_settings:
-    author_name: victoryeung
+    author_name: Victor Yeung
     author_email: victorho921@gmail.com
-    generated_timestamp: 1752966545
+    generated_timestamp: 1786938456
   control_xacro:
     command:
       - position
