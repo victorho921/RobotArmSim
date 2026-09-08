@@ -24,8 +24,8 @@ controller_manager:
     gripper_controller:
       type: joint_trajectory_controller/JointTrajectoryController
     
-    force_torque_sensor_broadcaster:
-      type: force_torque_sensor_broadcaster/ForceTorqueSensorBroadcaster
+    # force_torque_sensor_broadcaster:
+    #   type: force_torque_sensor_broadcaster/ForceTorqueSensorBroadcaster
 
     
 

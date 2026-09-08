@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: aubo_description_modify
+    relative_path: urdf/aubo_i5_calibrated.urdf.xacro
+  srdf:
+    relative_path: config/my_robot.srdf
+  package_settings:
+    author_name: victoryeung
+    author_email: victor.yeung@roborn.com
+    generated_timestamp: 1787888017
