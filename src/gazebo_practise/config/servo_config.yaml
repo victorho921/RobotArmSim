@@ -1,0 +1,36 @@
+/**:
+  ros__parameters:
+    moveit_servo:
+      use_gazebo: true
+
+      move_group_name: "manipulator"
+      # planning_frame: "fr3_link0"
+      planning_frame: "world"
+      ee_frame_name: "fr3_hand"
+      robot_link_command_frame: "fr3_camera_link"
+
+      # incoming_command_topic: ~/delta_twist_cmds
+      cartesian_command_in_topic: ~/delta_twist_cmds
+      status_topic: ~/status
+      joint_topic: /joint_states
+      command_out_topic: /arm_controller/joint_trajectory
+      command_out_type: trajectory_msgs/JointTrajectory
+      publish_period: 0.02
+      low_latency_mode: false
+
+      scale:
+        # linear: 0.4
+        linear: 20.4
+        # rotational: 0.8
+        rotational: 20.8
+        # joint: 0.5
+        joint: 20.5
+
+      incoming_command_timeout: 0.2
+
+      check_collisions: true
+      collision_check_rate: 10.0
+      self_collision_proximity_threshold: 0.02
+      scene_collision_proximity_threshold: 0.05
+
+      joint_limit_margin: 0.03

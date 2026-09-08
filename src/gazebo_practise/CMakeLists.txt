@@ -5,6 +5,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+set(Boost_USE_DEBUG_RUNTIME OFF)
+set(Boost_USE_STATIC_LIBS OFF)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -22,7 +25,10 @@ find_package(pluginlib REQUIRED)
 find_package(realtime_tools REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(pinocchio REQUIRED)
-
+find_package(moveit_ros_planning_interface REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -49,6 +55,15 @@ target_include_directories(TaskSpaceController PUBLIC
   )
 
 add_executable(reference_generator src/reference_generator.cpp)
+add_executable(aubo_trajectory src/aubo_trajectory.cpp)
+
+ament_target_dependencies(aubo_trajectory
+  rclcpp 
+  trajectory_msgs 
+  moveit_ros_planning_interface
+  geometry_msgs
+  nlohmann_json
+)
 
 # Link the executable reference_generator with required libraries
 ament_target_dependencies(reference_generator
@@ -87,5 +102,13 @@ pluginlib_export_plugin_description_file(controller_interface plugins.xml)
 
 install(TARGETS HybridFTController TaskSpaceController
   DESTINATION lib)
+
+install(TARGETS aubo_trajectory
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(PROGRAMS src/aubo_trajectory_python.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()
